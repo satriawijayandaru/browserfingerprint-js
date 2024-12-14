@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Identification</title>
+</head>
+<body>
+    <h1>Visitor Identification</h1>
+    <div id="result"></div>
+
+    <script>
+        // Initialize the agent at application startup.
+        const fpPromise = import('https://openfpcdn.io/fingerprintjs/v4')
+            .then(FingerprintJS => FingerprintJS.load())
+
+        // Get the visitor identifier when you need it.
+        fpPromise
+            .then(fp => fp.get())
+            .then(result => {
+                // This is the visitor identifier:
+                const visitorId = result.visitorId;
+                console.log(visitorId);
+
+                // Send the visitorId to the server to check if it exists in the database
+                fetch(`/check_visitor/${visitorId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.exists) {
+                            document.getElementById('result').innerHTML = `Device Name: ${data.device_name}, Visitor ID: ${visitorId}`;
+                        } else {
+                            // If visitorId doesn't exist, show a form to input the device name
+                            document.getElementById('result').innerHTML = `
+                                <p>Visitor ID: ${visitorId} not found. Please enter your device name:</p>
+                                <form action="/save_device" method="POST">
+                                    <input type="hidden" name="visitorId" value="${visitorId}">
+                                    <input type="text" name="deviceName" placeholder="Device Name" required>
+                                    <button type="submit">Submit</button>
+                                </form>
+                            `;
+                        }
+                    });
+            })
+            .catch(error => console.error(error));
+    </script>
+</body>
+</html>
